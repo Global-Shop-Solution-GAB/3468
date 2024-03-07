@@ -1,0 +1,450 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+
+'09/30/09 jct
+
+F.Intrinsic.UI.InvokeWaitDialog("","Master Schedule Export")
+
+V.Local.sJO.declare(String)
+V.Local.sJO2.Declare(String)
+V.Local.sJH.Declare(String)
+V.Local.sInv.Declare(String)
+V.Local.sJP.Declare(String)
+V.Local.sCM.Declare(String)
+V.Local.sOH.Declare(String)
+V.Local.sotwo.Declare(String)
+V.Local.scopy.Declare(String)
+V.Local.snow.Declare(String)
+
+V.Local.sOrder.Declare(String)
+V.Local.sOrdlne.Declare(String)
+V.Local.sJob.Declare(String)
+V.Local.sSuf.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sL1Desc.Declare(String)
+V.Local.sDesc.Declare(String)
+V.Local.sCust.Declare(String)
+V.Local.sOrdDte.Declare(String)
+V.Local.fRunQty.Declare(Float)
+V.Local.sDueDte.Declare(String)
+V.Local.sComplDte.Declare(String)
+V.Local.sEndDte.Declare(String)
+V.Local.sPurTag.Declare(String)
+V.Local.sPurAct.Declare(String)
+V.Local.sTotal.Declare(String)
+V.Local.sTag.Declare(String)
+V.Local.sSeq.Declare(String)
+V.Local.sPL.Declare(String)
+
+V.Local.M.Declare(String)
+V.Local.D.Declare(String)
+V.Local.Y.Declare(String)
+
+V.Local.fPrice.Declare(Float)
+V.Local.fTotal.Declare(Float)
+
+V.Local.sCurWC.Declare(String)
+V.Local.sSC.Declare(String)
+
+V.Local.sWC.Declare(String)
+V.Local.sHeading.Declare(String)
+V.Local.sRow.Declare(String)
+V.Local.sData.Declare(String)
+V.Local.sFileName.Declare(String)
+V.Local.sSheetname.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.sSaveAs.Declare(String)
+V.Local.sArray.Declare(String)
+V.Local.sJarray.Declare(String)
+V.Local.sOarray.Declare(String)
+V.Local.sOrd.Declare(String)
+
+V.Local.iCount.Declare(Long)
+V.Local.iHndl.Declare(Long)
+V.Local.iWait.Declare(Long)
+V.Local.iMaxWait.Declare(Long)
+V.Local.iJA.Declare(Long)
+
+V.Local.bexists.Declare(Boolean)
+
+F.Automation.OOGeneral.CheckPresence(V.Local.bexists)
+	F.Intrinsic.Control.If(V.Local.bexists,=,False)
+		F.Intrinsic.UI.Msgbox("Open Office Not Installed")
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.Endif
+
+
+F.Intrinsic.File.GetHandle(V.Local.iHndl)
+F.Intrinsic.String.StripCharacters(V.Ambient.Now,V.Local.snow)
+F.Intrinsic.String.Concat(V.Caller.FilesDir,"\Templates\MSTR_SCHED.xls",V.Local.sTemp)
+F.Intrinsic.String.Concat(V.System.Temp,"\Copy",V.Local.snow,".xls",V.Local.sCopy)
+F.Intrinsic.File.CopyFile(V.Local.sTemp,V.Local.sCopy)
+
+
+F.Intrinsic.String.Concat(V.System.Temp,"\Master_Schedule.xls",V.Local.sSheetname)
+F.Intrinsic.String.Concat(V.System.Temp,"\MSE.txt",V.Local.sFileName)
+
+	F.Intrinsic.File.Exists(V.Local.sFileName,V.Local.bexists)
+		F.Intrinsic.Control.If(V.Local.bexists,=,True)
+			F.Intrinsic.File.DeleteFile(V.Local.sFileName)
+		F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.File.Exists(V.Local.sSheetname,V.Local.bexists)
+		F.Intrinsic.Control.If(V.Local.bexists,=,True)
+			F.Intrinsic.File.DeleteFile(V.Local.sSheetname)
+		F.Intrinsic.Control.endif
+
+F.Intrinsic.File.OpenForAppend(V.Local.sFileName,V.Local.iHndl)
+F.ODBC.Connection!conA.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+'----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+F.ODBC.Connection!conA.OpenRecordsetRO("rstSJA","select distinct V_JOB_HEADER.JOB as JOB from V_JOB_HEADER left outer join ORDER_TO_WO on V_JOB_HEADER.JOB = ORDER_TO_WO.JOB where year(V_JOB_HEADER.DATE_CLOSED)='1900'and year(V_JOB_HEADER.DATE_SHIP_1)='1900' ")
+	F.Intrinsic.Control.DoUntil(V.ODBC.conA!rstSJA.EOF,=,True)
+		V.Local.sJOb.Set(V.ODBC.conA!rstSJA.FieldValTrim!JOB)
+			F.Intrinsic.String.Left(V.Local.sJOb,4,V.Local.sJOb)
+			F.Intrinsic.String.Concat(V.Local.sJArray,",",V.Local.sJOb,V.Local.sJArray)
+	F.ODBC.conA!rstSJA.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.conA!rstSJA.Close
+
+
+
+F.ODBC.Connection!conA.OpenRecordsetRO("rstSOA","select distinct  V_ORDER_LINES.ORDER_NO as ORDER_NO from V_ORDER_LINES left outer join ORDER_TO_WO on V_ORDER_LINES.ORDER_NO = ORDER_TO_WO.ORDER_NO where V_ORDER_LINES.LINE_TYPE='S'")
+	F.Intrinsic.Control.DoUntil(V.ODBC.conA!rstSOA.EOF,=,True)
+		V.Local.sOrd.Set(V.ODBC.conA!rstSOA.FieldValTrim!ORDER_NO)
+			F.Intrinsic.String.Mid(V.Local.sOrd,4,7,V.Local.sOrd)
+			F.Intrinsic.String.Concat(V.Local.sOArray,",",V.Local.sOrd,V.Local.sOArray)
+	F.ODBC.conA!rstSOA.MoveNext
+	F.Intrinsic.Control.Loop
+
+F.ODBC.conA!rstSOA.Close
+
+
+F.Intrinsic.String.Concat(V.Local.sJArray,V.Local.sOarray,V.Local.sJArray)
+F.Intrinsic.String.Split(V.Local.sJArray,",",V.Local.sJArray)
+F.Intrinsic.String.SortAsc(V.Local.sJArray,V.Local.sJArray)
+F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sJArray,V.Local.sArray)
+
+'remove Purchase 5/18/10
+V.Local.sHeading.Set("Item No*!*Order ID*!*Company*!*Product*!*Product Details*!*Order Date*!*Units*!*Required-byDate*!*Expected Ship Date*!*Status ID*!*Comments*!*S/C*!*Eng Target*!*Eng Actual*!*LO Target*!*LO Actual*!*Weld Target*!*Weld Actual*!*Bal Target*!*Bal Actual*!*Paint Target*!*Paint Actual*!*Assy Target*!*Assy Actual*!*Run Test Target*!*Run Test Actual*!*Scheduling Notes*!*Order Total$!$")
+	F.Intrinsic.File.WriteLine(V.Local.iHndl,V.Local.sHeading)
+
+V.Local.imaxwait.Set(V.Local.sArray.UBound)
+'----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+F.Intrinsic.Control.For(V.Local.iJA,1,V.Local.sArray.UBound,1)
+V.Local.sJob.Set("")
+V.Local.sCurWC.Set("")
+V.Local.sTag.Set("")
+V.Local.sPurAct.Set("")
+V.Local.sPurTag.Set("")
+V.Local.sTotal.Set("")
+V.Local.sOrder.Set("")
+V.Local.sCust.Set("")
+V.Local.sPart.Set("")
+V.Local.sDesc.Set("")
+V.Local.sOrdDte.Set("")
+V.Local.fRunQty.Set(0)
+V.Local.sDueDte.Set("")
+V.Local.sEndDte.Set("")
+V.Local.sDueDte.Set("")
+V.Local.sComplDte.Set("")
+V.Local.sSC.Set("")
+
+
+F.Intrinsic.Math.Add(V.Local.iWait,1,V.Local.iWait)
+F.Intrinsic.UI.ChangeWaitStatus("BuildingData",V.Local.iWait,1,V.Local.iMaxWait)
+
+	F.Intrinsic.String.Concat("select JOB,SUFFIX, PART,PRODUCT_LINE,CUSTOMER,DESCRIPTION,DATE_OPENED,QTY_ORDER,DATE_DUE,SCHEDULED_DUE_DATE from V_JOB_HEADER where left(JOB,4)='",V.Local.sArray(V.Local.iJA),"'and year(DATE_CLOSED)='1900'and year(DATE_SHIP_1)='1900'order by  DATE_OPENED,JOB,SUFFIX",V.Local.sJH)
+	F.ODBC.Connection!conA.OpenRecordsetRO("rstJH",V.Local.sJH)
+
+
+F.Intrinsic.String.Concat("select distinct V_ORDER_LINES.ORDER_NO,V_ORDER_LINES.RECORD_NO,PART, QTY_ORDERED, DATE_ORDER, DATE_ITEM_PROM, CUSTOMER, DESCRIPTION from V_ORDER_LINES where substring(ORDER_NO,4,7)='",V.Local.sArray(V.Local.iJA),"'and LINE_TYPE='S' order by V_ORDER_LINES.ORDER_NO",V.Local.sOH)
+F.ODBC.Connection!conA.OpenRecordsetRO("rstOH",V.Local.sOH)
+
+	F.Intrinsic.Control.DoUntil(V.ODBC.conA!rstOH.EOF,=,True)
+
+V.Local.sRow.Set("")
+V.Local.sData.Set("")
+V.Local.sEndDte.Set("")
+V.Local.Y.Set("")
+V.Local.sL1Desc.Set("")
+V.Local.sSC.Set("")
+V.Local.fRunQty.Set(0)
+V.Local.sCurWC.Set("")
+
+
+		V.Local.sOrder.Set(V.ODBC.conA!rstOH.FieldvalTrim!ORDER_NO)
+		V.Local.sOrdlne.Set(V.ODBC.conA!rstOH.FieldvalTrim!RECORD_NO)
+		V.Local.sPart.Set(V.ODBC.conA!rstOH.FieldValTrim!PART)
+		V.Local.sDesc.Set(V.ODBC.conA!rstOH.FieldValTrim!DESCRIPTION)
+		V.Local.sOrdDte.Set(V.ODBC.conA!rstOH.FieldVal!DATE_ORDER)
+		V.Local.fRunQty.Set(V.ODBC.conA!rstOH.FieldValTrim!QTY_ORDERED)
+		V.Local.sEndDte.Set(V.ODBC.conA!rstOH.FieldValTrim!DATE_ITEM_PROM)
+
+
+		F.Intrinsic.String.Concat("select NAME_CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER='",V.ODBC.conA!rstOH.FieldValTrim!CUSTOMER,"'",V.Local.sCM)
+		F.ODBC.Connection!conA.OpenRecordsetRO("rstCM",V.Local.sCM)
+			F.Intrinsic.Control.If(V.ODBC.conA!rstCM.EOF,=,False)
+				V.Local.sCust.Set(V.ODBC.conA!rstCM.FieldValTrim!NAME_CUSTOMER)
+			F.Intrinsic.Control.Else
+				V.Local.sCust.Set("")
+			F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstCM.Close
+
+
+		F.Intrinsic.String.Concat("select AMT_PRICE, PRODUCT_LINE from INVENTORY_MSTR where PART='",V.Local.sPart,"'",V.Local.sInv)
+		F.ODBC.Connection!conA.OpenRecordsetRO("rstInv",V.Local.sInv)
+			F.Intrinsic.Control.If(V.ODBC.conA!rstInv.EOF,=,False)
+				V.Local.fPrice.Set(V.ODBC.conA!rstInv.FieldValTrim!AMT_PRICE)
+				V.Local.sPL.Set(V.ODBC.conA!rstInv.FieldValTrim!PRODUCT_LINE)
+			F.Intrinsic.Control.Else
+				V.Local.fPrice.Set(0)
+			F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstInv.Close
+
+		F.Intrinsic.Math.Mult(V.Local.fPrice,V.Local.fRunQty,V.Local.fTotal)
+	F.Intrinsic.Control.If(V.Local.fTotal,<>,0)
+		F.Intrinsic.String.Format(V.Local.fTotal,"0.00",V.Local.sTotal)
+	F.Intrinsic.Control.Else
+		V.Local.sTotal.Set("")
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Left(V.Local.sDesc,2,V.Local.sL1Desc)
+F.Intrinsic.Control.If(V.Local.sPL,=,"CB")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sPL,=,"HD")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sL1Desc,=,"DR")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sL1Desc,=,"DS")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sSC,<>,"C")
+	V.Local.sSC.Set("S")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.ODBC.conA!rstJH.EOF,=,True)
+	F.Intrinsic.String.Concat("*!*",V.Local.sOrder,"*!*",V.Local.sCust,"*!*",V.Local.sPart,"*!*",V.Local.sDesc,"*!*",V.Local.sOrdDte,"*!*",V.Local.fRunQty,"*!*",V.Local.sDueDte,"*!*",V.Local.sEndDte,"*!**!**!*",V.Local.sSC,"*!**!**!**!**!**!**!**!**!**!**!**!**!**!**!**!*$!$",V.Local.sRow)
+	F.Intrinsic.File.WriteLine(V.Local.iHndl,V.Local.sRow)
+F.Intrinsic.Control.EndIf
+
+	F.ODBC.conA!rstOH.MoveNext
+	F.Intrinsic.Control.Loop
+F.ODBC.conA!rstOH.Close
+
+
+
+F.Intrinsic.Control.If(V.ODBC.conA!rstJH.EOF,=,False)
+'F.Intrinsic.Math.Add(V.Local.iWait,1,V.Local.iWait)
+	F.Intrinsic.Control.DoUntil(V.ODBC.conA!rstJH.EOF,=,True)
+
+			V.Local.sDueDte.Set(V.ODBC.conA!rstJH.FieldValTrim!DATE_DUE)
+			V.Local.sSuf.Set(V.ODBC.conA!rstJH.FieldValTrim!SUFFIX)
+			V.Local.sDesc.Set(V.ODBC.conA!rstJH.FieldValTrim!DESCRIPTION)
+			V.Local.sJob.Set(V.ODBC.conA!rstJH.FieldValTrim!JOB)
+			V.Local.sPart.Set(V.ODBC.conA!rstJH.FieldValTrim!PART)
+			V.Local.fRunQty.Set(V.ODBC.conA!rstJH.FieldVal!QTY_ORDER)
+			V.Local.sRow.Set("")
+			V.Local.sData.Set("")
+
+		F.Intrinsic.String.Concat("select NAME_CUSTOMER from V_CUSTOMER_MASTER where CUSTOMER='",V.ODBC.conA!rstJH.FieldValTrim!CUSTOMER,"'",V.Local.sCM)
+		F.ODBC.Connection!conA.OpenRecordsetRO("rstCM",V.Local.sCM)
+			F.Intrinsic.Control.If(V.ODBC.conA!rstCM.EOF,=,False)
+				V.Local.sCust.Set(V.ODBC.conA!rstCM.FieldValTrim!NAME_CUSTOMER)
+			F.Intrinsic.Control.Else
+				V.Local.sCust.Set("")
+			F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstCM.Close
+
+
+		F.Intrinsic.String.Concat("select AMT_PRICE, PRODUCT_LINE from INVENTORY_MSTR where PART='",V.Local.sPart,"'",V.Local.sInv)
+		F.ODBC.Connection!conA.OpenRecordsetRO("rstInv",V.Local.sInv)
+			F.Intrinsic.Control.If(V.ODBC.conA!rstInv.EOF,=,False)
+				V.Local.fPrice.Set(V.ODBC.conA!rstInv.FieldValTrim!AMT_PRICE)
+				V.Local.sPL.Set(V.ODBC.conA!rstInv.FieldValTrim!PRODUCT_LINE)
+			F.Intrinsic.Control.Else
+				V.Local.fPrice.Set(0)
+			F.Intrinsic.Control.EndIf
+		F.ODBC.conA!rstInv.Close
+
+		F.Intrinsic.Math.Mult(V.Local.fPrice,V.Local.fRunQty,V.Local.fTotal)
+	F.Intrinsic.Control.If(V.Local.fTotal,<>,0)
+		F.Intrinsic.String.Format(V.Local.fTotal,"0.00",V.Local.sTotal)
+	F.Intrinsic.Control.Else
+		V.Local.sTotal.Set("")
+	F.Intrinsic.Control.EndIf
+
+	F.Intrinsic.String.Left(V.Local.sDesc,2,V.Local.sL1Desc)
+F.Intrinsic.Control.If(V.Local.sPL,=,"CB")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sPL,=,"HD")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sL1Desc,=,"DR")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.ElseIf(V.Local.sL1Desc,=,"DS")
+		V.Local.sSC.Set("C")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sSC,<>,"C")
+	V.Local.sSC.Set("S")
+F.Intrinsic.Control.EndIf
+
+
+			F.Intrinsic.String.Concat("select TOP 1 SEQ from JOB_OPERATIONS where LMO='L' and JOB='",V.Local.sJob,"'and SUFFIX='",V.Local.sSuf,"' and DATE_COMPLETED <> '000000' order by SEQ desc",V.Local.sJO)
+			F.ODBC.Connection!conA.OpenRecordsetRO("rstJO",V.Local.sJO)
+				F.Intrinsic.Control.If(V.ODBC.conA!rstJO.EOF,=,False)
+					V.Local.sSeq.Set(V.ODBC.conA!rstJO.FieldValtrim!SEQ)
+				F.Intrinsic.Control.Else
+					V.Local.sSeq.Set("")
+				F.Intrinsic.Control.EndIf
+			F.ODBC.conA!rstJO.Close
+
+			F.Intrinsic.String.Concat("select PART,SEQ from JOB_OPERATIONS where LMO='L' and JOB='",V.Local.sJob,"'and SUFFIX='",V.Local.sSuf,"' and DATE_COMPLETED ='000000' and SEQ>'",V.Local.sSeq,"'",V.Local.sJO)
+			F.ODBC.Connection!conA.OpenRecordsetRO("rstJO",V.Local.sJO)
+				F.Intrinsic.Control.If(V.ODBC.conA!rstJO.EOF,=,False)
+					V.Local.sCurWC.Set(V.ODBC.conA!rstJO.FieldValTrim!PART)
+				F.Intrinsic.Control.Else
+					V.Local.sCurWC.Set("")
+				F.Intrinsic.Control.EndIf
+			F.ODBC.conA!rstJO.Close
+
+			F.Intrinsic.String.Concat("select SEQ from JOB_OPERATIONS where LMO='L' and JOB='",V.Local.sJob,"'and SUFFIX='",V.Local.sSuf,"'and SEQ <'",V.Local.sSeq,"'and DATE_COMPLETED='000000' order by SEQ",V.Local.sJO)
+			F.ODBC.Connection!conA.OpenRecordsetRO("rstJO",V.Local.sJO)
+				F.Intrinsic.Control.If(V.ODBC.conA!rstJO.EOF,=,False)
+					V.Local.sTAG.Set("^")
+				F.Intrinsic.Control.Else
+					V.Local.sTAG.Set("")
+				F.Intrinsic.Control.EndIf
+			F.ODBC.conA!rstJO.Close
+
+				F.Intrinsic.String.Concat(V.Local.sTag,V.Local.sCurWC,V.Local.sCurWC)
+
+F.Intrinsic.String.Concat("*!*",V.Local.sJob,"-",V.Local.sSuf,"*!*",V.Local.sCust,"*!*",V.Local.sPart,"*!*",V.Local.sDesc,"*!*",V.Local.sOrdDte,"*!*",V.Local.fRunQty,"*!*",V.Local.sDueDte,"*!*",V.Local.sEndDte,"*!*",V.Local.sCurWC,"*!**!*",V.Local.sSC,V.Local.sRow)
+
+		V.Local.sWC.Set("ENG*!*LAY*!*WELD*!*BAL*!*PNT*!*ASSY*!*TST")
+			F.Intrinsic.String.Split(V.Local.sWC,"*!*",V.Local.sWC)
+			F.Intrinsic.Control.For(V.Local.iCount,V.Local.sWC.LBound,V.Local.sWC.UBound,1)
+
+				F.Intrinsic.String.Concat("select DATE_DUE,DATE_COMPLETED from V_JOB_OPERATIONS inner join WORKCENTERS on V_JOB_OPERATIONS.PART=WORKCENTERS.MACHINE where (LMO= 'L' or LMO='Z') and JOB='",V.Local.sjob,"'and SUFFIX='",V.Local.sSuf,"'and WC_DEPT='",V.Local.sWC(v.Local.iCount),"'",V.Local.sJO)
+				F.ODBC.Connection!conA.OpenRecordsetRO("rstJO",V.Local.sJO)
+					F.Intrinsic.Control.If(V.ODBC.conA!rstJO.EOF,=,False)
+						F.Intrinsic.Date.Year(V.ODBC.conA!rstJO.FieldValTrim!DATE_DUE,V.Local.Y)
+						F.Intrinsic.Control.If(V.Local.Y,<>,"1900")
+							V.Local.sDueDte.Set(V.ODBC.conA!rstJO.FieldValTrim!DATE_DUE)
+						F.Intrinsic.Control.Else
+							V.Local.sDueDte.Set("")
+						F.Intrinsic.Control.EndIf
+						F.Intrinsic.Date.Year(V.ODBC.conA!rstJO.FieldValTrim!DATE_COMPLETED,V.Local.Y)
+						F.Intrinsic.Control.If(V.Local.Y,<>,"1900")
+							V.Local.sComplDte.Set(V.ODBC.conA!rstJO.FieldValTrim!DATE_COMPLETED)
+						F.Intrinsic.Control.Else
+							V.Local.sComplDte.Set("")
+						F.Intrinsic.Control.EndIf
+
+
+							F.Intrinsic.String.Concat(V.Local.sData,"*!*",V.Local.sDueDte,"*!*",V.Local.sComplDte,V.Local.sData)
+
+					F.Intrinsic.Control.else
+
+			F.Intrinsic.Control.If(V.Local.sWC(v.Local.iCount),=,"ENG")
+				V.Local.sWC(v.Local.iCount).Set("ENGR")
+			F.Intrinsic.Control.ElseIf(V.Local.sWC(v.Local.iCount),=,"LAY")
+				V.Local.sWC(v.Local.iCount).Set("LAYO")
+			F.Intrinsic.Control.ElseIf(V.Local.sWC(v.Local.iCount),=,"WELD")
+				V.Local.sWC(v.Local.iCount).Set("WLDG")
+			F.Intrinsic.Control.EndIf
+				F.Intrinsic.String.Concat("select DATE_DUE,DATE_COMPLETED from V_JOB_OPERATIONS inner join WORKGROUP_HEAD on V_JOB_OPERATIONS.PART=WORKGROUP_HEAD.WORK_GROUP where (LMO= 'L' or LMO='Z') and JOB='",V.Local.sjob,"'and SUFFIX='",V.Local.sSuf,"'and WORKGROUP_HEAD.WORK_GROUP='",V.Local.sWC(v.Local.iCount),"'",V.Local.sJO2)
+				F.ODBC.Connection!conA.OpenRecordsetRO("rstJO2",V.Local.sJO2)
+					F.Intrinsic.Control.If(V.ODBC.conA!rstJO2.EOF,=,False)
+						F.Intrinsic.Date.Year(V.ODBC.conA!rstJO2.FieldValTrim!DATE_DUE,V.Local.Y)
+						F.Intrinsic.Control.If(V.Local.Y,<>,"1900")
+							V.Local.sDueDte.Set(V.ODBC.conA!rstJO2.FieldValTrim!DATE_DUE)
+						F.Intrinsic.Control.Else
+							V.Local.sDueDte.Set("")
+						F.Intrinsic.Control.EndIf
+						F.Intrinsic.Date.Year(V.ODBC.conA!rstJO2.FieldValTrim!DATE_COMPLETED,V.Local.Y)
+						F.Intrinsic.Control.If(V.Local.Y,<>,"1900")
+							V.Local.sComplDte.Set(V.ODBC.conA!rstJO2.FieldValTrim!DATE_COMPLETED)
+						F.Intrinsic.Control.Else
+							V.Local.sComplDte.Set("")
+						F.Intrinsic.Control.EndIf
+
+
+							F.Intrinsic.String.Concat(V.Local.sData,"*!*",V.Local.sDueDte,"*!*",V.Local.sComplDte,V.Local.sData)
+
+					F.Intrinsic.Control.Else
+						F.Intrinsic.String.Concat(V.Local.sData,"*!*","*!*",V.Local.sData)
+					F.Intrinsic.Control.EndIf
+				F.ODBC.conA!rstJO2.Close
+'						F.Intrinsic.Control.If(V.Local.sWC(v.Local.iCount),=,"PURCH")
+'							F.Intrinsic.String.Concat("select top 1 DATE_START from v_JOB_OPERATIONS where LMO='M' and JOB='",V.Local.sJob,"'and SUFFIX='",V.Local.sSuf,"'and DATE_START<>'1900-01-01'",V.Local.sJP)
+'							F.ODBC.Connection!conA.OpenRecordsetRO("rstJP",V.Local.sJP)
+'								F.Intrinsic.Control.If(V.ODBC.conA!rstJP.EOF,=,False)
+'									V.Local.sPurTag.Set(V.ODBC.conA!rstJP.FieldVal!DATE_START)
+'								F.Intrinsic.Control.EndIf
+'							F.ODBC.conA!rstJP.Close
+
+'							F.Intrinsic.String.Concat("select top 1 DATE_COMPLETED from v_JOB_OPERATIONS where DATE_COMPLETED<>'1900-01-01' and LMO='M'and JOB='",V.Local.sJob,"'and SUFFIX='",V.Local.sSuf,"'",V.Local.sJP)
+'							F.ODBC.Connection!conA.OpenRecordsetRO("rstJP",V.Local.sJP)
+'								F.Intrinsic.Control.If(V.ODBC.conA!rstJP.EOF,=,False)
+'									V.Local.sPurAct.Set(V.ODBC.conA!rstJP.FieldVal!DATE_COMPLETED)
+'								F.Intrinsic.Control.EndIf
+'							F.ODBC.conA!rstJP.Close
+
+'							F.Intrinsic.String.Concat(V.Local.sData,"*!*",V.Local.sPurTag,"*!*",V.Local.sPurAct,V.Local.sData)
+
+					
+
+
+					F.Intrinsic.Control.EndIf
+				F.ODBC.conA!rstJO.Close
+			F.Intrinsic.Control.Next(V.Local.iCount)
+
+		F.Intrinsic.String.Concat(V.Local.sRow,V.Local.sData,"*!**!*",V.Local.sTotal,"$!$",V.Local.sRow)
+
+'	F.Intrinsic.File.OpenForAppend(V.Local.sFileName,V.Local.iHndl)
+		F.Intrinsic.File.WriteLine(V.Local.iHndl,V.Local.sRow)
+'		F.Intrinsic.File.CloseFile(V.Local.iHndl)
+
+		F.ODBC.conA!rstJH.MoveNext
+		F.Intrinsic.Control.Loop
+	F.Intrinsic.Control.EndIf
+	F.ODBC.conA!rstJH.Close
+
+
+F.Intrinsic.Control.Next(V.Local.iJA)
+F.Intrinsic.UI.ChangeWaitStatus("Exporting Data")
+
+F.Intrinsic.File.CloseFile(V.Local.iHndl)
+
+
+
+F.Intrinsic.File.File2String(V.Local.sFileName,V.Local.sData)
+F.Automation.OOCalc.writespreadsheet(V.Local.sSheetname,V.Local.sCopy,True,V.Local.sData)
+F.Intrinsic.File.DeleteFile(V.Local.scopy)
+
+F.Intrinsic.UI.ShowSaveFileDialog(V.Local.sSheetname,".xls",V.Local.sSaveAs)
+F.Intrinsic.File.CopyFile(V.Local.sSheetname,V.Local.sSaveAs)
+F.Intrinsic.File.DeleteFile(V.Local.sSheetname)
+
+
+F.Intrinsic.Control.CallSub(Unload)
+
+
+Program.Sub.Main.End
+
+Program.Sub.Unload.Start
+
+
+F.ODBC.Connection!conA.Close
+f.Intrinsic.Control.End
+
+Program.Sub.Unload.End
+
+
